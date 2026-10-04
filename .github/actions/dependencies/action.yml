@@ -29,7 +29,8 @@ runs:
                 git clone --depth 1 "https://x-access-token:$TOKEN@github.com/ArchangelWTF/CPP2ILXDX" "$RUNNER_TEMP/Cpp2ILXDX"
                 # BepInEx.Unity.IL2CPP floats on 2022.1.0-xdx.*. The timestamp keeps every pack newer than the last.
                 version="xdx.$(date -u +%Y%m%d%H%M%S)"
+                # Pack on build makes a multi-targeted pack look for outputs before building them on a clean clone.
                 for project in WasmDisassembler LibCpp2IL StableNameDotNet Cpp2IL.Core; do
-                    dotnet pack "$RUNNER_TEMP/Cpp2ILXDX/$project/$project.csproj" -c Release -p:VersionSuffix="$version" -o "$RUNNER_TEMP/Cpp2ILXDX/bin/NuGet"
+                    dotnet pack "$RUNNER_TEMP/Cpp2ILXDX/$project/$project.csproj" -c Release -p:GeneratePackageOnBuild=false -p:VersionSuffix="$version" -o "$RUNNER_TEMP/Cpp2ILXDX/bin/NuGet"
                 done
                 echo "Cpp2ILXDXFeed=$RUNNER_TEMP/Cpp2ILXDX/bin/NuGet" >> "$GITHUB_ENV"
