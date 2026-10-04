@@ -124,7 +124,7 @@ public class UnityChainloader : BaseChainloader<BaseUnityPlugin>
             var productNameProp =
                 typeof(Application).GetProperty("productName", BindingFlags.Public | BindingFlags.Static);
             _consoleTitle =
-                $"{CurrentAssemblyName} {CurrentAssemblyVersion} - {productNameProp?.GetValue(null, null) ?? Path.GetFileNameWithoutExtension(Process.GetCurrentProcess().ProcessName)}";
+                $"{Paths.DisplayName} {CurrentAssemblyVersion} -{productNameProp?.GetValue(null, null) ?? Path.GetFileNameWithoutExtension(Process.GetCurrentProcess().ProcessName)}";
 
             Logger.Log(LogLevel.Debug, "Falling back to BaseChainloader initializer");
 

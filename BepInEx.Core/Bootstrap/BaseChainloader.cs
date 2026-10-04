@@ -111,7 +111,7 @@ public abstract class BaseChainloader<TPlugin>
 
     #region Contract
 
-    protected virtual string ConsoleTitle => $"BepInEx {Paths.BepInExVersion} - {Paths.ProcessName}";
+    protected virtual string ConsoleTitle => $"{Paths.DisplayName} {Paths.BepInExVersion} - {Paths.ProcessName}";
 
     private bool _initialized;
 

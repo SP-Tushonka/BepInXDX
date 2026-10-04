@@ -26,6 +26,11 @@ public static class Paths
         new(BepInExVersion.Major, BepInExVersion.Minor, BepInExVersion.Patch, BepInExVersion.PreRelease);
 
     /// <summary>
+    ///    Name shown in the console title, the log and error dialogs. Folders and files keep the BepInEx name.
+    /// </summary>
+    public const string DisplayName = "BepInXDX";
+
+    /// <summary>
     ///     The path to the Managed folder that contains the main managed assemblies.
     /// </summary>
     public static string ManagedPath { get; private set; }

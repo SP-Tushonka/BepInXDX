@@ -35,7 +35,7 @@ public static class ChainloaderLogHelper
 
     public static void PrintLogInfo(ManualLogSource log)
     {
-        var consoleTitle = $"BepInEx {Paths.DisplayBepInExVersion} - {Paths.ProcessName}";
+        var consoleTitle = $"{Paths.DisplayName} {Paths.DisplayBepInExVersion} - {Paths.ProcessName}";
         log.Log(LogLevel.Message, $"{consoleTitle} ({File.GetLastWriteTime(Paths.ExecutablePath)})");
 
         if (ConsoleManager.ConsoleActive)
