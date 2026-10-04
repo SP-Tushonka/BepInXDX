@@ -20,6 +20,11 @@
     <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     </PropertyGroup>
+    <!-- Il2CppInterop comes from the SP-Tushonka fork's packed output. CI points Il2CppInteropFeed at its own clone. -->
+    <PropertyGroup>
+        <Il2CppInteropFeed Condition=" '$(Il2CppInteropFeed)' == '' ">$(MSBuildThisFileDirectory)../Il2CppInterop/bin/NuGet</Il2CppInteropFeed>
+        <RestoreAdditionalProjectSources Condition="Exists('$(Il2CppInteropFeed)')">$(Il2CppInteropFeed)</RestoreAdditionalProjectSources>
+    </PropertyGroup>
     <ItemGroup>
         <None Include="$(SolutionDir)\assets\logos\logo.png" Pack="true" Visible="false" PackagePath=""/>
     </ItemGroup>
