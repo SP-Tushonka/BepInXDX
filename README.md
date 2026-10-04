@@ -1,4 +1,7 @@
-﻿<p align="center">
+﻿> [!WARNING]
+> This fork was developed with AI assistance. The changes in it were reviewed and tested
+
+<p align="center">
     <img src="https://avatars2.githubusercontent.com/u/39589027?s=256">
 </p>
 
