@@ -17,10 +17,17 @@ jobs:
                     fetch-depth: 0 # Tags and history feed the changelog
             -   name: Find previous nightly
                 id: previous
+                env:
+                    GH_TOKEN: ${{ github.token }}
                 run: |
                     last=$(git tag --list 'nightly-*' --sort=-creatordate | head -n 1)
                     echo "tag=$last" >> "$GITHUB_OUTPUT"
-                    if [ "${{ github.event_name }}" = "schedule" ] && [ -n "$last" ] && [ "$(git rev-list -n 1 "$last")" = "$(git rev-parse HEAD)" ]; then
+                    [ -n "$last" ] || exit 0
+                    # Each release links the Il2CppInterop commit it was built from
+                    interop=$(gh release view "$last" --json body --jq .body | grep -o 'Il2CppInterop/commit/[0-9a-f]\{40\}' | cut -d/ -f3)
+                    echo "interop=$interop" >> "$GITHUB_OUTPUT"
+                    head=$(git ls-remote https://github.com/SP-Tushonka/Il2CppInterop refs/heads/master | cut -f1)
+                    if [ "${{ github.event_name }}" = "schedule" ] && [ "$(git rev-list -n 1 "$last")" = "$(git rev-parse HEAD)" ] && [ "$interop" = "$head" ]; then
                         echo "skip=true" >> "$GITHUB_OUTPUT"
                     fi
             -   uses: ./.github/actions/dependencies
@@ -38,8 +45,15 @@ jobs:
                     tag="nightly-$(date -u +%Y%m%d)-be.${{ github.run_number }}"
                     range="${{ steps.previous.outputs.tag }}"
                     range="${range:+$range..}HEAD"
+                    repo=https://github.com/SP-Tushonka/Il2CppInterop
+                    interop=$(git -C "$RUNNER_TEMP/Il2CppInterop" rev-parse HEAD)
+                    previous="${{ steps.previous.outputs.interop }}"
                     {
-                        echo "Built from \`$(git rev-parse --short HEAD)\`."
+                        echo "Built from \`$(git rev-parse --short HEAD)\` with Il2CppInterop [\`${interop:0:7}\`]($repo/commit/$interop)."
+                        if [ -n "$previous" ] && [ "$previous" != "$interop" ]; then
+                            echo
+                            echo "Il2CppInterop changed: [\`${previous:0:7}...${interop:0:7}\`]($repo/compare/$previous...$interop)"
+                        fi
                         echo
                         git --no-pager log --no-merges --max-count=100 --pretty="format:- (\`%h\`) %s" "$range"
                     } > notes.md
