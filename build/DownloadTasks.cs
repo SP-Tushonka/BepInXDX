@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Formats.Tar;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -31,10 +32,14 @@ static class DownloadTasks
         {
             Task.WaitAll(files.Select(async t =>
             {
-                var zipFilePath = $"{t.Destination}_tmp.zip";
-                await DownloadFile(pCtx, t.Name, t.Url, zipFilePath);
-                await UnzipFile(pCtx, t.Name, zipFilePath, t.Destination);
-                File.Delete(zipFilePath!);
+                var isTarGz = t.Url.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase);
+                var archivePath = $"{t.Destination}_tmp{(isTarGz ? ".tar.gz" : ".zip")}";
+                await DownloadFile(pCtx, t.Name, t.Url, archivePath);
+                if (isTarGz)
+                    await ExtractTarGz(archivePath, t.Destination);
+                else
+                    await UnzipFile(pCtx, t.Name, archivePath, t.Destination);
+                File.Delete(archivePath);
             }).ToArray());
         });
     }
@@ -56,6 +61,14 @@ static class DownloadTasks
             await fs.WriteAsync(buffer.AsMemory(0, read));
             bar.Increment(read);
         }
+    }
+
+    static async Task ExtractTarGz(FilePath archive, DirectoryPath destination)
+    {
+        Directory.CreateDirectory(destination.FullPath);
+        await using var fs = File.OpenRead(archive.FullPath);
+        await using var gz = new GZipStream(fs, CompressionMode.Decompress);
+        await TarFile.ExtractToDirectoryAsync(gz, destination.FullPath, true);
     }
 
     static async Task UnzipFile(ProgressContext pCtx, string name, FilePath zipFile, DirectoryPath destination)

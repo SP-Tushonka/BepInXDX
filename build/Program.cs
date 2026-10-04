@@ -33,11 +33,8 @@ public class BuildContext : FrostingContext
     }
 
     public const string DoorstopVersion = "4.5.0";
-    public const string DotnetRuntimeVersion = "6.0.7";
+    public const string DotnetRuntimeVersion = "10.0.12";
     public const string DobbyVersion = "1.0.5";
-
-    public const string DotnetRuntimeZipUrl =
-        $"https://github.com/BepInEx/dotnet-runtime/releases/download/{DotnetRuntimeVersion}/mini-coreclr-Release.zip";
 
     internal readonly DistributionTarget[] Distributions =
     {
@@ -110,6 +107,14 @@ public class BuildContext : FrostingContext
 
     public static string DobbyZipUrl(string arch) =>
         $"https://github.com/BepInEx/Dobby/releases/download/v{DobbyVersion}/dobby-{arch}.zip";
+
+    // Microsoft names macOS osx and only ships tarballs outside Windows.
+    public static string DotnetRuntimeUrl(string runtimeIdentifier)
+    {
+        var rid = runtimeIdentifier.Replace("macos-", "osx-");
+        var extension = rid.StartsWith("win-") ? "zip" : "tar.gz";
+        return $"https://builds.dotnet.microsoft.com/dotnet/Runtime/{DotnetRuntimeVersion}/dotnet-runtime-{DotnetRuntimeVersion}-{rid}.{extension}";
+    }
 }
 
 [TaskName("Clean")]
@@ -192,14 +197,30 @@ public sealed class DownloadDependenciesTask : FrostingTask<BuildContext>
             ctx.DownloadZipFiles($"Dobby {BuildContext.DobbyVersion}", versions);
         });
 
-        cache.Refresh("BepInEx/dotnet_runtime", BuildContext.DotnetRuntimeVersion, () =>
+        cache.Refresh("dotnet/runtime", BuildContext.DotnetRuntimeVersion, () =>
         {
             ctx.Log.Information($"Downloading dotnet runtime {BuildContext.DotnetRuntimeVersion}");
             var dotnetDir = ctx.CacheDirectory.Combine("dotnet");
             ctx.CreateDirectory(dotnetDir);
             ctx.CleanDirectory(dotnetDir);
+            var rids = ctx.Distributions.Where(d => d.Runtime == "IL2CPP")
+                          .Select(d => d.RuntimeIdentifier)
+                          .Distinct()
+                          .ToArray();
             ctx.DownloadZipFiles($"dotnet-runtime {BuildContext.DotnetRuntimeVersion}",
-                                 ("dotnet runtime", BuildContext.DotnetRuntimeZipUrl, dotnetDir));
+                                 rids.Select(rid => ($"dotnet runtime ({rid})",
+                                                     BuildContext.DotnetRuntimeUrl(rid),
+                                                     dotnetDir.Combine($"{rid}_full")))
+                                     .ToArray());
+
+            // Doorstop loads coreclr straight from the dotnet folder, so only the shared framework is kept.
+            foreach (var rid in rids)
+            {
+                var full = dotnetDir.Combine($"{rid}_full");
+                ctx.CopyDirectory(full.Combine("shared").Combine("Microsoft.NETCore.App").Combine(BuildContext.DotnetRuntimeVersion),
+                                  dotnetDir.Combine(rid));
+                ctx.DeleteDirectory(full, new DeleteDirectorySettings { Recursive = true });
+            }
         });
 
         cache.Save();
