@@ -43,7 +43,7 @@ internal static class PlatformUtils
             RtlGetVersion(ref windowsVersionInfo);
 
             WindowsVersion = new Version((int) windowsVersionInfo.dwMajorVersion,
-                                         (int) windowsVersionInfo.dwMinorVersion, 0,
+                                         (int) windowsVersionInfo.dwMinorVersion,
                                          (int) windowsVersionInfo.dwBuildNumber);
 
             var ntDll = LoadLibrary("ntdll.dll");
