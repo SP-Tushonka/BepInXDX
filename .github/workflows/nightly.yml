@@ -35,7 +35,7 @@ jobs:
                 env:
                     GH_TOKEN: ${{ github.token }}
                 run: |
-                    tag="nightly-$(date -u +%Y%m%d)-${{ github.run_number }}"
+                    tag="nightly-$(date -u +%Y%m%d)-be.${{ github.run_number }}"
                     range="${{ steps.previous.outputs.tag }}"
                     range="${range:+$range..}HEAD"
                     {
@@ -46,5 +46,5 @@ jobs:
                     gh release create "$tag" bin/dist/*.zip \
                         --target "$GITHUB_SHA" \
                         --prerelease \
-                        --title "BepInXDX nightly #${{ github.run_number }}" \
+                        --title "BepInXDX be.${{ github.run_number }}" \
                         --notes-file notes.md
