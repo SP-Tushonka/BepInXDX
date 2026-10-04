@@ -1,0 +1,35 @@
+name: Build dependencies
+description: Packs Il2CppInterop and Cpp2ILXDX into the local feeds Directory.Build.props restores from
+
+inputs:
+    cpp2ilxdx-token:
+        description: Read-only token for the private Cpp2ILXDX repository
+        required: true
+
+runs:
+    using: composite
+    steps:
+        -   uses: actions/setup-dotnet@v4
+            with:
+                dotnet-version: |
+                    8.0.x
+                    10.0.x
+        -   name: Pack Il2CppInterop
+            shell: bash
+            run: |
+                git clone --depth 1 https://github.com/SP-Tushonka/Il2CppInterop "$RUNNER_TEMP/Il2CppInterop"
+                dotnet build "$RUNNER_TEMP/Il2CppInterop/Il2CppInterop.Generator/Il2CppInterop.Generator.csproj" -c Release
+                dotnet build "$RUNNER_TEMP/Il2CppInterop/Il2CppInterop.HarmonySupport/Il2CppInterop.HarmonySupport.csproj" -c Release
+                echo "Il2CppInteropFeed=$RUNNER_TEMP/Il2CppInterop/bin/NuGet" >> "$GITHUB_ENV"
+        -   name: Pack Cpp2ILXDX
+            shell: bash
+            env:
+                TOKEN: ${{ inputs.cpp2ilxdx-token }}
+            run: |
+                git clone --depth 1 "https://x-access-token:$TOKEN@github.com/ArchangelWTF/CPP2ILXDX" "$RUNNER_TEMP/Cpp2ILXDX"
+                # BepInEx.Unity.IL2CPP floats on 2022.1.0-xdx.*. The timestamp keeps every pack newer than the last.
+                version="xdx.$(date -u +%Y%m%d%H%M%S)"
+                for project in WasmDisassembler LibCpp2IL StableNameDotNet Cpp2IL.Core; do
+                    dotnet pack "$RUNNER_TEMP/Cpp2ILXDX/$project/$project.csproj" -c Release -p:VersionSuffix="$version" -o "$RUNNER_TEMP/Cpp2ILXDX/bin/NuGet"
+                done
+                echo "Cpp2ILXDXFeed=$RUNNER_TEMP/Cpp2ILXDX/bin/NuGet" >> "$GITHUB_ENV"
