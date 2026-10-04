@@ -1,0 +1,60 @@
+name: Nightly
+
+on:
+    schedule:
+        -   cron: "0 3 * * *"
+    workflow_dispatch:
+
+permissions:
+    contents: write
+
+jobs:
+    nightly:
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@v4
+                with:
+                    fetch-depth: 0 # Tags and history feed the changelog
+            -   name: Find previous nightly
+                id: previous
+                run: |
+                    last=$(git tag --list 'nightly-*' --sort=-creatordate | head -n 1)
+                    echo "tag=$last" >> "$GITHUB_OUTPUT"
+                    if [ "${{ github.event_name }}" = "schedule" ] && [ -n "$last" ] && [ "$(git rev-list -n 1 "$last")" = "$(git rev-parse HEAD)" ]; then
+                        echo "skip=true" >> "$GITHUB_OUTPUT"
+                    fi
+            -   uses: actions/setup-dotnet@v4
+                if: steps.previous.outputs.skip != 'true'
+                with:
+                    dotnet-version: |
+                        8.0.x
+                        10.0.x
+            -   name: Build Il2CppInterop
+                if: steps.previous.outputs.skip != 'true'
+                run: |
+                    git clone --depth 1 https://github.com/SP-Tushonka/Il2CppInterop "$RUNNER_TEMP/Il2CppInterop"
+                    dotnet build "$RUNNER_TEMP/Il2CppInterop/Il2CppInterop.Generator/Il2CppInterop.Generator.csproj" -c Release
+                    dotnet build "$RUNNER_TEMP/Il2CppInterop/Il2CppInterop.HarmonySupport/Il2CppInterop.HarmonySupport.csproj" -c Release
+            -   name: Build
+                if: steps.previous.outputs.skip != 'true'
+                env:
+                    Il2CppInteropFeed: ${{ runner.temp }}/Il2CppInterop/bin/NuGet
+                run: ./build.sh --target Publish --build-type BleedingEdge --build-id ${{ github.run_number }}
+            -   name: Publish release
+                if: steps.previous.outputs.skip != 'true'
+                env:
+                    GH_TOKEN: ${{ github.token }}
+                run: |
+                    tag="nightly-$(date -u +%Y%m%d)-${{ github.run_number }}"
+                    range="${{ steps.previous.outputs.tag }}"
+                    range="${range:+$range..}HEAD"
+                    {
+                        echo "Built from \`$(git rev-parse --short HEAD)\`."
+                        echo
+                        git --no-pager log --no-merges --max-count=100 --pretty="format:- (\`%h\`) %s" "$range"
+                    } > notes.md
+                    gh release create "$tag" bin/dist/*.zip \
+                        --target "$GITHUB_SHA" \
+                        --prerelease \
+                        --title "BepInXDX nightly #${{ github.run_number }}" \
+                        --notes-file notes.md
