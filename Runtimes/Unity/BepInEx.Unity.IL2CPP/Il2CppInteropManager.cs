@@ -186,6 +186,10 @@ internal static partial class Il2CppInteropManager
         HashString(md5, typeof(InteropAssemblyGenerator).Assembly.GetName().Version.ToString());
         HashString(md5, typeof(Cpp2IlApi).Assembly.GetName().Version.ToString());
 
+        // Fork builds keep their version, the module id changes with every change to the code
+        HashString(md5, typeof(InteropAssemblyGenerator).Module.ModuleVersionId.ToString());
+        HashString(md5, typeof(Cpp2IlApi).Module.ModuleVersionId.ToString());
+
         md5.TransformFinalBlock(new byte[0], 0, 0);
 
         return Utility.ByteArrayToString(md5.Hash);
