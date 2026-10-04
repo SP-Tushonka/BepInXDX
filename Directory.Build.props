@@ -20,10 +20,12 @@
     <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     </PropertyGroup>
-    <!-- Il2CppInterop comes from the SP-Tushonka fork's packed output. CI points Il2CppInteropFeed at its own clone. -->
+    <!-- Il2CppInterop and Cpp2ILXDX come from sibling checkouts' packed output. CI points both feeds at its own clones. -->
     <PropertyGroup>
         <Il2CppInteropFeed Condition=" '$(Il2CppInteropFeed)' == '' ">$(MSBuildThisFileDirectory)../Il2CppInterop/bin/NuGet</Il2CppInteropFeed>
+        <Cpp2ILXDXFeed Condition=" '$(Cpp2ILXDXFeed)' == '' ">$(MSBuildThisFileDirectory)../Cpp2ILXDX/bin/NuGet</Cpp2ILXDXFeed>
         <RestoreAdditionalProjectSources Condition="Exists('$(Il2CppInteropFeed)')">$(Il2CppInteropFeed)</RestoreAdditionalProjectSources>
+        <RestoreAdditionalProjectSources Condition="Exists('$(Cpp2ILXDXFeed)')">$(RestoreAdditionalProjectSources);$(Cpp2ILXDXFeed)</RestoreAdditionalProjectSources>
     </PropertyGroup>
     <ItemGroup>
         <None Include="$(SolutionDir)\assets\logos\logo.png" Pack="true" Visible="false" PackagePath=""/>
