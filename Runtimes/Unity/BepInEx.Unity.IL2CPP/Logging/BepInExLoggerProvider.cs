@@ -39,6 +39,10 @@ internal class BepInExLoggerProvider : ILoggerProvider
                                 Exception exception,
                                 Func<TState, Exception, string> formatter)
         {
+            // The minimum level is Trace so every listener can filter, which leaves skipping unheard levels to us
+            if (!IsEnabled(logLevel))
+                return;
+
             var logLine = state.ToString() ?? string.Empty;
 
             if (exception != null)
