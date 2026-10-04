@@ -6,10 +6,13 @@ namespace BepInEx.Unity.IL2CPP.Logging;
 
 public class IL2CPPLogSource : ILogSource
 {
+    // il2cpp keeps calling the pointer, so the delegate behind it must live as long as this source
+    private readonly IL2CPPLogCallbackDelegate callback;
+
     public IL2CPPLogSource()
     {
-        var loggerPointer = Marshal.GetFunctionPointerForDelegate(new IL2CPPLogCallbackDelegate(IL2CPPLogCallback));
-        Il2CppInterop.Runtime.IL2CPP.il2cpp_register_log_callback(loggerPointer);
+        callback = IL2CPPLogCallback;
+        Il2CppInterop.Runtime.IL2CPP.il2cpp_register_log_callback(Marshal.GetFunctionPointerForDelegate(callback));
     }
 
     public string SourceName { get; } = "IL2CPP";
@@ -21,5 +24,5 @@ public class IL2CPPLogSource : ILogSource
         LogEvent?.Invoke(this, new LogEventArgs(message.Trim(), LogLevel.Message, this));
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    private delegate void IL2CPPLogCallbackDelegate([In] [MarshalAs(UnmanagedType.LPStr)] string message);
+    private delegate void IL2CPPLogCallbackDelegate([In] [MarshalAs(UnmanagedType.LPUTF8Str)] string message);
 }
