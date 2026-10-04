@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using MonoMod.Utils;
 
 namespace BepInEx.Unix;
@@ -21,41 +21,50 @@ internal static class UnixStreamHelper
 
     public delegate int isattyDelegate(int fd);
 
-    [DynDllImport("libc")]
     public static dupDelegate dup;
 
-    [DynDllImport("libc")]
     public static fdopenDelegate fdopen;
 
-    [DynDllImport("libc")]
     public static freadDelegate fread;
 
-    [DynDllImport("libc")]
     public static fwriteDelegate fwrite;
 
-    [DynDllImport("libc")]
     public static fcloseDelegate fclose;
 
-    [DynDllImport("libc")]
     public static fflushDelegate fflush;
 
-    [DynDllImport("libc")]
     public static isattyDelegate isatty;
 
     static UnixStreamHelper()
     {
-        var libcMapping = new Dictionary<string, List<DynDllMapping>>
+        var libc = OpenLibc();
+        dup = GetExport<dupDelegate>(libc, "dup");
+        fdopen = GetExport<fdopenDelegate>(libc, "fdopen");
+        fread = GetExport<freadDelegate>(libc, "fread");
+        fwrite = GetExport<fwriteDelegate>(libc, "fwrite");
+        fclose = GetExport<fcloseDelegate>(libc, "fclose");
+        fflush = GetExport<fflushDelegate>(libc, "fflush");
+        isatty = GetExport<isattyDelegate>(libc, "isatty");
+    }
+
+    private static IntPtr OpenLibc()
+    {
+        string[] names =
         {
-            ["libc"] = new()
-            {
-                "libc.so.6",               // Ubuntu glibc
-                "libc",                    // Linux glibc
-                "/usr/lib/libSystem.dylib" // OSX POSIX
-            }
+            "libc.so.6",               // Ubuntu glibc
+            "libc",                    // Linux glibc
+            "/usr/lib/libSystem.dylib" // OSX POSIX
         };
 
-        typeof(UnixStreamHelper).ResolveDynDllImports(libcMapping);
+        foreach (var name in names)
+            if (DynDll.TryOpenLibrary(name, out var handle))
+                return handle;
+
+        throw new DllNotFoundException("libc");
     }
+
+    private static T GetExport<T>(IntPtr library, string name) where T : Delegate =>
+        (T) Marshal.GetDelegateForFunctionPointer(library.GetExport(name), typeof(T));
 
     public static Stream CreateDuplicateStream(int fileDescriptor)
     {

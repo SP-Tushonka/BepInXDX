@@ -69,7 +69,9 @@ public static class ChainloaderLogHelper
 
         // Not sure what it does on Linux. I think it returns the kernel version there too, but we already get the utsname structure from SetPlatform() regardless
 
-        if (PlatformHelper.Is(Platform.Windows))
+        var os = PlatformDetection.OS;
+
+        if (os.Is(OSKind.Windows))
         {
             osVersion = PlatformUtils.WindowsVersion;
 
@@ -92,10 +94,10 @@ public static class ChainloaderLogHelper
             else if (osVersion.Major <= 5)
                 builder.Append("XP");
 
-            if (PlatformHelper.Is(Platform.Wine))
+            if (PlatformUtils.IsWine)
                 builder.AppendFormat(" (Wine {0})", PlatformUtils.WineVersion);
         }
-        else if (PlatformHelper.Is(Platform.MacOS))
+        else if (os.Is(OSKind.OSX))
         {
             builder.Append("macOS ");
 
@@ -111,7 +113,7 @@ public static class ChainloaderLogHelper
                 builder.AppendFormat("Unknown (kernel {0})", osVersion);
             }
         }
-        else if (PlatformHelper.Is(Platform.Linux))
+        else if (os.Is(OSKind.Linux))
         {
             builder.Append("Linux");
 
@@ -121,18 +123,19 @@ public static class ChainloaderLogHelper
             }
         }
 
-        builder.Append(PlatformHelper.Is(Platform.Bits64) ? " 64-bit" : " 32-bit");
+        builder.Append(PlatformUtils.Is64BitOperatingSystem ? " 64-bit" : " 32-bit");
 
-        if (PlatformHelper.Is(Platform.Android))
+        if (os.Is(OSKind.Android))
         {
             builder.Append(" Android");
         }
 
-        if (PlatformHelper.Is(Platform.ARM))
+        var architecture = PlatformDetection.Architecture;
+        if (architecture is ArchitectureKind.Arm or ArchitectureKind.Arm64)
         {
             builder.Append(" ARM");
 
-            if (PlatformHelper.Is(Platform.Bits64))
+            if (architecture == ArchitectureKind.Arm64)
                 builder.Append("64");
         }
 

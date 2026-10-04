@@ -6,12 +6,11 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP.Hook.Dobby;
 using BepInEx.Unity.IL2CPP.Hook.Funchook;
-using MonoMod.RuntimeDetour;
 using MonoMod.Utils;
 
 namespace BepInEx.Unity.IL2CPP.Hook;
 
-public interface INativeDetour : IDetour
+public interface INativeDetour : IDisposable
 {
     private static readonly ConfigEntry<DetourProvider> DetourProviderType = ConfigFile.CoreConfig.Bind(
          "Detours", "DetourProviderType",
@@ -24,6 +23,20 @@ public interface INativeDetour : IDetour
     public nint OriginalMethodPtr { get; }
     public nint DetourMethodPtr { get; }
     public nint TrampolinePtr { get; }
+
+    public bool IsValid { get; }
+
+    public bool IsApplied { get; }
+
+    public void Apply();
+
+    public void Undo();
+
+    public void Free();
+
+    public MethodBase GenerateTrampoline(MethodBase signature = null);
+
+    public T GenerateTrampoline<T>() where T : Delegate;
 
     private static INativeDetour CreateDefault<T>(nint original, T target) where T : Delegate =>
         // TODO: check and provide an OS accurate provider
@@ -42,7 +55,7 @@ public interface INativeDetour : IDetour
             DetourProvider.Funchook => new FunchookDetour(original, target),
             _                       => CreateDefault(original, target)
         };
-        if (!ReflectionHelper.IsMono)
+        if (PlatformDetection.Runtime != RuntimeKind.Mono)
         {
             return new CacheDetourWrapper(detour, target);
         }

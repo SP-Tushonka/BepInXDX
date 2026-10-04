@@ -1,8 +1,9 @@
 using System;
+using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using BepInEx.Logging;
-using MonoMod.RuntimeDetour;
 
 namespace BepInEx.Unity.IL2CPP.Hook;
 
@@ -63,7 +64,7 @@ internal abstract class BaseNativeDetour<T> : INativeDetour where T : BaseNative
         if (TrampolineMethod == null)
         {
             Prepare();
-            TrampolineMethod = DetourHelper.GenerateNativeProxy(TrampolinePtr, signature);
+            TrampolineMethod = GenerateNativeProxy(TrampolinePtr, signature);
         }
 
         return TrampolineMethod;
@@ -71,12 +72,27 @@ internal abstract class BaseNativeDetour<T> : INativeDetour where T : BaseNative
 
     public TDelegate GenerateTrampoline<TDelegate>() where TDelegate : Delegate
     {
-        if (!typeof(Delegate).IsAssignableFrom(typeof(TDelegate)))
-            throw new InvalidOperationException($"Type {typeof(TDelegate)} not a delegate type.");
-
-        _ = GenerateTrampoline(typeof(TDelegate).GetMethod("Invoke"));
+        Prepare();
 
         return Marshal.GetDelegateForFunctionPointer<TDelegate>(TrampolinePtr);
+    }
+
+    private static MethodInfo GenerateNativeProxy(nint target, MethodBase signature)
+    {
+        var returnType = (signature as MethodInfo)?.ReturnType ?? typeof(void);
+        var parameterTypes = signature.GetParameters().Select(p => p.ParameterType).ToArray();
+
+        var method = new DynamicMethod($"Native<{(long) target:X16}>", returnType, parameterTypes,
+                                       typeof(BaseNativeDetour<T>).Module, true);
+        var il = method.GetILGenerator();
+        for (var i = 0; i < parameterTypes.Length; i++)
+            il.Emit(OpCodes.Ldarg, (short) i);
+        il.Emit(OpCodes.Ldc_I8, (long) target);
+        il.Emit(OpCodes.Conv_I);
+        il.EmitCalli(OpCodes.Calli, CallingConvention.Cdecl, returnType, parameterTypes);
+        il.Emit(OpCodes.Ret);
+
+        return method;
     }
 
     protected abstract void ApplyImpl();

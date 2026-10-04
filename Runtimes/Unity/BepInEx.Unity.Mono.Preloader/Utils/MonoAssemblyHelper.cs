@@ -15,13 +15,11 @@ internal static class MonoAssemblyHelper
     {
         // We can't use mono's __Internal because on Windows it will use GetModuleHandleW(NULL) that will
         // in turn return the module to the EXE and not mono.dll (at least on Unity versions < 5).
-        typeof(MonoAssemblyHelper).ResolveDynDllImports(new()
-        {
-            ["mono"] = new()
-            {
-                EnvVars.DOORSTOP_MONO_LIB_PATH
-            }
-        });
+        var mono = DynDll.OpenLibrary(EnvVars.DOORSTOP_MONO_LIB_PATH);
+        imageOpen = (ImageOpenDelegate) Marshal.GetDelegateForFunctionPointer(
+             mono.GetExport("mono_image_open_from_data_with_name"), typeof(ImageOpenDelegate));
+        assemblyLoad = (AssemblyLoadDelegate) Marshal.GetDelegateForFunctionPointer(
+             mono.GetExport("mono_assembly_load_from_full"), typeof(AssemblyLoadDelegate));
     }
 
     private static ReadAssemblyResult ReadAssemblyData(string filePath)
@@ -109,11 +107,7 @@ internal static class MonoAssemblyHelper
             }
         }
     }
-#pragma warning disable CS0649
-    [DynDllImport("mono", "mono_image_open_from_data_with_name")]
-    private static ImageOpenDelegate imageOpen;
+    private static readonly ImageOpenDelegate imageOpen;
 
-    [DynDllImport("mono", "mono_assembly_load_from_full")]
-    private static AssemblyLoadDelegate assemblyLoad;
-#pragma warning restore CS0649
+    private static readonly AssemblyLoadDelegate assemblyLoad;
 }
