@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 
 namespace BepInEx.Unity.IL2CPP.UnityEngine;
 
@@ -342,5 +343,7 @@ public static class Input
 
     public static bool GetKeyInt(KeyCode key) => GetKeyInt_Value(key);
 
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    [return: MarshalAs(UnmanagedType.I1)]
     private delegate bool GetKeyIntDelegate(KeyCode key);
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace BepInEx.Unity.IL2CPP.Hook.Funchook;
 
@@ -26,7 +27,7 @@ internal class FunchookDetour : BaseNativeDetour<FunchookDetour>
     protected override void FreeImpl() => EnsureSuccess(FunchookLib.Destroy(funchookInstance));
 
     private string GetErrorMessage()
-        => FunchookLib.ErrorMessage(funchookInstance);
+        => Marshal.PtrToStringUTF8(FunchookLib.ErrorMessage(funchookInstance));
 
     private void EnsureSuccess(FunchookResult result, [CallerArgumentExpression("result")] string methodName = null)
     {

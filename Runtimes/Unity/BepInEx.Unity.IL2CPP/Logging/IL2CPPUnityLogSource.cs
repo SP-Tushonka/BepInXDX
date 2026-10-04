@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using BepInEx.Logging;
 using UnityEngine;
 
@@ -35,5 +36,5 @@ public class IL2CPPUnityLogSource : ILogSource
         LogEvent?.Invoke(this, new LogEventArgs(logLine, level, this));
     }
 
-    private delegate IntPtr SetLogCallbackDefinedDelegate(bool defined);
+    private delegate void SetLogCallbackDefinedDelegate([MarshalAs(UnmanagedType.I1)] bool defined);
 }
