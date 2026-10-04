@@ -13,8 +13,17 @@ jobs:
             -   uses: actions/checkout@v2.3.5
             -   uses: actions/setup-dotnet@v4
                 with:
-                    dotnet-version: "8.0.x"
+                    dotnet-version: |
+                        8.0.x
+                        10.0.x
+            -   name: Build Il2CppInterop
+                run: |
+                    git clone --depth 1 https://github.com/SP-Tushonka/Il2CppInterop "$RUNNER_TEMP/Il2CppInterop"
+                    dotnet build "$RUNNER_TEMP/Il2CppInterop/Il2CppInterop.Generator/Il2CppInterop.Generator.csproj" -c Release
+                    dotnet build "$RUNNER_TEMP/Il2CppInterop/Il2CppInterop.HarmonySupport/Il2CppInterop.HarmonySupport.csproj" -c Release
             -   name: Build
+                env:
+                    Il2CppInteropFeed: ${{ runner.temp }}/Il2CppInterop/bin/NuGet
                 run: |
                     ./build.sh --target Publish
             -   name: Upload Artifacts

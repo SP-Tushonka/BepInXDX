@@ -36,8 +36,17 @@ jobs:
                     github_token: ${{ secrets.GITHUB_TOKEN }}
             -   uses: actions/setup-dotnet@v4
                 with:
-                    dotnet-version: "8.0.x"
+                    dotnet-version: |
+                        8.0.x
+                        10.0.x
+            -   name: Build Il2CppInterop
+                run: |
+                    git clone --depth 1 https://github.com/SP-Tushonka/Il2CppInterop "$RUNNER_TEMP/Il2CppInterop"
+                    dotnet build "$RUNNER_TEMP/Il2CppInterop/Il2CppInterop.Generator/Il2CppInterop.Generator.csproj" -c Release
+                    dotnet build "$RUNNER_TEMP/Il2CppInterop/Il2CppInterop.HarmonySupport/Il2CppInterop.HarmonySupport.csproj" -c Release
             -   name: Build
+                env:
+                    Il2CppInteropFeed: ${{ runner.temp }}/Il2CppInterop/bin/NuGet
                 run: |
                     ./build.sh --target Publish --build-type ${{ steps.info.outputs.build_type }} --build-id ${{ steps.info.outputs.build_id }} --last-build-commit \"${{ steps.last_successful_commit.outputs.commit_hash }}\" --nuget-api-key \"${{ secrets.BEPIN_DEV_NUGET_KEY }}\"
             -   name: Upload to BepinBuilds
