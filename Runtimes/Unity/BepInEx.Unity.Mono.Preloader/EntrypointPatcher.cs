@@ -33,7 +33,12 @@ internal class EntrypointPatcher : BasePatcher
     private static string DefaultEntrypointAssembly =>
         UnityInfo.Version.LessThan(2017) ? "UnityEngine.dll" : "UnityEngine.CoreModule.dll";
 
-    private static string DefaultEntrypointType => UnityInfo.Version.LessThan(5) ? "MonoBehaviour" : "Application";
+    /// <summary>
+    ///     Type whose static constructor starts the chainloader. From 6000.5 Application's runs before the player can
+    ///     add components, so loading a plugin there crashes in AddComponent.
+    /// </summary>
+    private static string DefaultEntrypointType =>
+        UnityInfo.Version.LessThan(5) || !UnityInfo.Version.LessThan(6000, 5) ? "MonoBehaviour" : "Application";
 
     private bool HasLoaded { get; set; }
 
