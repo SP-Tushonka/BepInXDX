@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -30,14 +31,24 @@ namespace BepInEx.Unity.Mono.Logging
 
         static UnityLogListener()
         {
-            foreach (var methodInfo in typeof(UnityLogWriter).GetMethods(BindingFlags.Static | BindingFlags.Public))
+            // Unity 6 marshals the string through a span before its icall, so the stubs below find no icall and only
+            // Unity's own managed writer reaches the log
+            var unityWriter = typeof(Application).Assembly.GetType("UnityEngine.UnityLogWriter")
+                                                ?.GetMethod("WriteStringToUnityLog", BindingFlags.Static | BindingFlags.Public, null, new[] { typeof(string) }, null);
+            var candidates = typeof(UnityLogWriter).GetMethods(BindingFlags.Static | BindingFlags.Public);
+            if (unityWriter != null)
+                candidates = new[] { unityWriter }.Concat(candidates).ToArray();
+
+            Exception lastError = null;
+            foreach (var methodInfo in candidates)
             {
                 try
                 {
                     methodInfo.Invoke(null, new object[] { "" });
                 }
-                catch
+                catch (Exception ex)
                 {
+                    lastError = ex;
                     continue;
                 }
 
@@ -46,7 +57,7 @@ namespace BepInEx.Unity.Mono.Logging
             }
 
             if (WriteStringToUnityLog == null)
-                Logger.Log(LogLevel.Error, "Unable to start Unity log writer");
+                Logger.Log(LogLevel.Error, $"Unable to start Unity log writer: {lastError}");
         }
 
         /// <inheritdoc />
