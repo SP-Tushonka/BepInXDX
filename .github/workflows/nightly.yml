@@ -2,7 +2,8 @@ name: Nightly
 
 on:
     schedule:
-        -   cron: "0 3 * * *"
+        # GitHub drops queued scheduled runs at the top of the hour first
+        -   cron: "17 7 * * *"
     workflow_dispatch:
 
 permissions:
