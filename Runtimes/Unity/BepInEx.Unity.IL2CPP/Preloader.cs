@@ -41,6 +41,7 @@ public static class Preloader
             }
 
             RedirectStdErrFix.Apply();
+            NativeCrashLog.Apply();
 
             ChainloaderLogHelper.PrintLogInfo(Log);
 
