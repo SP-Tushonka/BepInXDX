@@ -12,7 +12,8 @@ internal class DobbyDetour : BaseNativeDetour<DobbyDetour>
     {
         nint trampolinePtr = 0;
         DobbyLib.Prepare(OriginalMethodPtr, DetourMethodPtr, &trampolinePtr);
-        TrampolinePtr = trampolinePtr;
+        var rebuilt = DobbyTrampoline.Build(OriginalMethodPtr, Logger);
+        TrampolinePtr = rebuilt != 0 ? rebuilt : trampolinePtr;
     }
 
     protected override void UndoImpl() => DobbyLib.Destroy(OriginalMethodPtr);
