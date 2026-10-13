@@ -6,6 +6,7 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP.Hook.Dobby;
 using BepInEx.Unity.IL2CPP.Hook.Funchook;
+using BepInEx.Unity.IL2CPP.Hook.Iced;
 using MonoMod.Utils;
 
 namespace BepInEx.Unity.IL2CPP.Hook;
@@ -38,9 +39,24 @@ public interface INativeDetour : IDisposable
 
     public T GenerateTrampoline<T>() where T : Delegate;
 
-    private static INativeDetour CreateDefault<T>(nint original, T target) where T : Delegate =>
-        // TODO: check and provide an OS accurate provider
-        new DobbyDetour(original, target);
+    private static bool icedFallbackLogged;
+
+    // Dobby crashes when its search for memory near a function comes up empty, those hooks go to the Iced detour instead
+    private static INativeDetour CreateDefault<T>(nint original, T target) where T : Delegate
+    {
+        if (RuntimeInformation.ProcessArchitecture != Architecture.X64 || !OperatingSystem.IsWindows()
+         || DobbyNearSearch.FindsPage(original))
+            return new DobbyDetour(original, target);
+
+        if (!icedFallbackLogged)
+        {
+            icedFallbackLogged = true;
+            ThunkLog.LogWarning($"Dobby finds no free memory near 0x{original:X}, hooks there use the Iced detour. Address space around it: "
+                              + X64CodeMemory.DescribeSurroundings(original));
+        }
+
+        return new IcedDetour(original, target);
+    }
 
     public static INativeDetour Create<T>(nint original, T target) where T : Delegate
     {
@@ -53,6 +69,7 @@ public interface INativeDetour : IDisposable
         {
             DetourProvider.Dobby    => new DobbyDetour(original, target),
             DetourProvider.Funchook => new FunchookDetour(original, target),
+            DetourProvider.Iced     => new IcedDetour(original, target),
             _                       => CreateDefault(original, target)
         };
         if (PlatformDetection.Runtime != RuntimeKind.Mono)
@@ -158,6 +175,7 @@ public interface INativeDetour : IDisposable
     {
         Default,
         Dobby,
-        Funchook
+        Funchook,
+        Iced
     }
 }
