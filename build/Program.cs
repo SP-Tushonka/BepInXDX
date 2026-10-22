@@ -33,7 +33,7 @@ public class BuildContext : FrostingContext
     }
 
     public const string DistName = "BepInXDX";
-    public const string DoorstopVersion = "4.5.0";
+    public const string DoorstopVersion = "4.6.0";
     public const string DotnetRuntimeVersion = "10.0.12";
     public const string DobbyVersion = "1.0.5";
 
